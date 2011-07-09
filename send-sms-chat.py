@@ -108,8 +108,9 @@ def send_sms(toMobileNo, textMsg):
     print '\tSMS chunk sent!'
 
 def print_usage():
-    print '  Usage: ' + (sys.argv[0]).split('\\')[-1] + ' "cell_no(10 digits)/Starting of a name in "'
-    print '"Each sent message of yours can be any length, your message will be broken down to '+ MAX_CHUNK_SIZE + ' chars each SMS\'es)"' 
+    print '\n  Usage: ' + (sys.argv[0]).split('\\')[-1] + ' "cell_no/start_of_first_name_or_last_name_of_contact"\n'
+    print '    "Each sent message of yours can be any length, '
+    print '    your message will be broken down to '+ str(MAX_CHUNK_SIZE) + ' chars each SMS\'es)"' 
     print_command_line_args()
 
 def print_command_line_args():
