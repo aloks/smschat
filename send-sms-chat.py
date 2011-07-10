@@ -4,11 +4,13 @@ Created on Apr 23, 2011
 @author: alok
 '''
 
-import urllib2, cookielib, urllib, os
-from BeautifulSoup import BeautifulSoup
 import sys
 import csv
 import re
+import urllib2, cookielib, urllib, os
+from BeautifulSoup import BeautifulSoup
+
+PROPERTIES_FILE_NAME='send_sms.properties'
 
 class PhoneContact():
     def __init__(self, first_name = None, last_name = None, phone_no = None):
@@ -49,6 +51,46 @@ class PhoneContact():
         print '\t\tLast Name: '+ self.get_last_name()
         print '\t\tPhone Number: ' + self.get_phone_no()
 
+
+class NoPropertyFileError(Exception):
+    def __init__(self, value=None):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
+
+class ConfigProps():
+    def __init__(self, config_file_path = None):
+        if (config_file_path == None):
+            raise NoPropertyFileError
+        else:
+            self._config_file_path = config_file_path
+
+        if not os.path.exists(config_file_path):
+            print 'Enter way2sms creds way2sms.username and way2sms.password and contacts.file name in '+ PROPERTIES_FILE_NAME + ' file in same directory'
+            raise NoPropertyFileError(config_file_path)
+        else:
+            fp = open(config_file_path)
+            props = {}
+            for line in fp:
+                if line.strip().startswith('#'): continue
+                nameVal = line.strip().split('=')
+                props[nameVal[0]]=nameVal[1]
+        
+        for key in props:
+            if (key == 'way2sms.username'): self._username = props[key]
+            elif (key == 'way2sms.password'): self._password = props[key]
+            elif (key == 'contacts.file'): self._contacts_csv = props[key]
+
+    def get_way2sms_username(self):
+        return self._username
+
+    def get_way2sms_password(self):
+        return self._password
+
+    def get_contacts_csv_file_path(self):
+        return self._contacts_csv
+
+
 COOKIE_JAR = cookielib.CookieJar()
 URL_OPENER = urllib2.build_opener(urllib2.HTTPCookieProcessor(COOKIE_JAR))
 WAY_TO_SMS_ENTRY_URL='http://site3.way2sms.com/entry.jsp'
@@ -69,8 +111,7 @@ def login_to_way2sms(username, password):
     post_data = urllib.urlencode(post_props)
     fp = URL_OPENER.open(WAY_TO_SMS_AUTH_URL, post_data)
     resp = fp.read()
-    print 'Login Done!'
-
+    print 'Session with Way2SMS Created!\n'
 
 class SessionExpired(Exception):
     pass
@@ -115,14 +156,14 @@ def print_usage():
 
 def print_command_line_args():
     print '\tIf the Cell No is specified it must be 10 digits'
-    print '\telse the string is matched for first name and last name in the contacts csv file mentioned in send_sms.properties file'
+    print '\tElse the string is matched for first name and last name in the contacts csv file mentioned in '+ PROPERTIES_FILE_NAME 
 
 def get_way2sms_creds_from_properties_file():
-    if not os.path.exists('send_sms.properties'):
-        print 'Enter way2sms creds way2sms.username and way2sms.password in send_sms.properties file'
+    if not os.path.exists(PROPERTIES_FILE_NAME):
+        print 'Enter way2sms creds way2sms.username and way2sms.password in '+ PROPERTIES_FILE_NAME 
         sys.exit()
     else:
-        fp = open('send_sms.properties')
+        fp = open(PROPERTIES_FILE_NAME)
         props = {}
         for line in fp:
             if line.strip().startswith('#'): continue
@@ -229,14 +270,24 @@ def send_sms_to_contact_no(contact_no, full_msg):
                     send_sms(contact_no, append_footer_to_msg(chunk, chunk_no, len(msg_chunks)))
                 is_sent_flag = True
             except SessionExpired:
-                creds = get_way2sms_creds_from_properties_file()
+                props = ConfigProps(PROPERTIES_FILE_NAME)
                 open_entry_url()
-                login_to_way2sms(creds[0], creds[1])
+                login_to_way2sms(props.get_way2sms_username(), props.get_way2sms_password())
+
+class NotATenDigitNo(Exception):
+    def __init__(self, digit_str):
+        self.digit_str = digit_str
+    def __str__(self):
+        return repr(digit_str)
 
 def send_sms_to_contacts(to_send_contacts, message):
     for contact in to_send_contacts:
-        print 'Sending Sms to: ' + contact.get_first_name() + ' ' + contact.get_last_name() + '(' + contact.get_phone_no()[-10:]+')'
-        send_sms_to_contact_no(contact.get_phone_no()[-10:], message)
+        ten_digit_no = contact.get_phone_no()[-10:]
+        if not is_ten_digit_number(ten_digit_no):
+            raise NotATenDigitNo(ten_digit_no)
+
+        print 'Sending Sms to: ' + contact.get_first_name() + ' ' + contact.get_last_name() + '(' + ten_digit_no +')'
+        send_sms_to_contact_no(ten_digit_no, message)
 
 def is_add_to_contacts_requested(cell_no):
     user_choice=raw_input('Do you want to add ' + cell_no + ' contact for future use? ([y|Y|yes|yEs]/[n|N|nO|NO|No|no]):')
@@ -277,7 +328,7 @@ def ask_and_add_to_contacts(cell_no, csv_file_path):
         add_contact_to_csv(first_name, last_name, cell_no, csv_file_path)
         return (first_name, last_name)
     else:
-        return None
+        return ('','')
 
 def get_all_rows_from_csv(csv_file_name):
     fp = open(csv_file_name, 'rb')
@@ -297,16 +348,24 @@ def get_contacts_list_from_csv(csv_file_name):
 
     return contacts
 
+def starrify_print(str):
+    return ((80-len(str))/2)*'*' + str + ((80-len(str))/2)*'*'
+
+def print_messaging_options():
+    menu_title = ' Menu '
+    print starrify_print(menu_title)
+    to_quit_help = ' To Quit Chat press only <ENTER> without any text after > '
+    to_send_help = ' To Send Msg via SMS, Type the Message and Press <ENTER> ' 
+    print '\to' + to_send_help
+    print '\to' + to_quit_help + '\n'
+
 def get_message_from_user(to_send_contacts):
     names = []
     for name in to_send_contacts:
         names.append(name.get_first_name() + ' ' + \
                      name.get_last_name())
 
-    to_quit_help = ' To Quit Chat press only <ENTER> without any text after > '
-    print ((80-len(to_quit_help))/2)*'*' + to_quit_help + ((80-len(to_quit_help))/2)*'*'+ '\n'
-    to_send_help = ' To Send Msg via SMS, Type the Message and Press <ENTER>: ' 
-    print ((80-len(to_send_help))/2)*'*' + to_send_help + ((80-len(to_send_help))/2)*'*' + '\n'
+    print_messaging_options()
 
     message = raw_input('Next SMS Contents to: "' + ','.join(names) + '"> ')
     if len(message.strip()) != 0:
@@ -314,24 +373,25 @@ def get_message_from_user(to_send_contacts):
     else:
         return None
 
+def is_ten_digit_number(str = None):
+    if str!= None and re.match('\d{10}', str) != None:
+        return True
+    else:
+        return False
+
 if __name__ == '__main__':
     if len(sys.argv) == 2:
-        creds = get_way2sms_creds_from_properties_file()
-        csv_file_path = creds[2]
+        props = ConfigProps(PROPERTIES_FILE_NAME)
         argv1 = sys.argv[1]
         matched_contacts = []
-        #Check for a 10 digit int in the argv1
-        if re.match('\d{10}',argv1) != None:
+        if is_ten_digit_number(argv1):
             cell_no = argv1
             print 'Number detected!'
-            ret = ask_and_add_to_contacts(cell_no, csv_file_path)
-            if ret:
-                matched_contacts.append(PhoneContact(ret[0], ret[1], cell_no))
-            else:
-                matched_contacts.append(PhoneContact('', '', cell_no))
+            (first_name, last_name) = ask_and_add_to_contacts(cell_no, props.get_contacts_csv_file_path())
+            matched_contacts.append(PhoneContact(first_name, last_name, cell_no))
         else:
             name_to_be_matched = sys.argv[1]
-            contacts = get_contacts_list_from_csv(csv_file_path)
+            contacts = get_contacts_list_from_csv(props.get_contacts_csv_file_path())
             matched_contacts = get_contacts_which_match(contacts, name_to_be_matched)
         if len(matched_contacts) == 0:
             print 'No Matches found!!'
@@ -342,7 +402,8 @@ if __name__ == '__main__':
                 print 'No Contacts to send, Exiting.. '
                 sys.exit()
             open_entry_url()
-            login_to_way2sms(creds[0], creds[1])
+            login_to_way2sms(props.get_way2sms_username(),
+                             props.get_way2sms_password())
             message = get_message_from_user(to_send_contacts)
             while message != None:
                 send_sms_to_contacts(to_send_contacts, message)
