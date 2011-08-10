@@ -244,7 +244,7 @@ def is_contact_confirmed_by_user(contact):
     elif user_choice.lower() == 'n' or user_choice.lower() == 'no': return False
     else:
         print 'Invalid option specified! Re-enter choice!!'
-        is_contact_confirmed_by_user(contact)
+        return is_contact_confirmed_by_user(contact)
 
 def get_user_confirmed_contacts(matched_contacts):
     user_confirmed_contacts = []
@@ -356,7 +356,11 @@ def print_messaging_options():
     print starrify_print(menu_title)
     to_quit_help = ' To Quit Chat press only <ENTER> without any text after > '
     to_send_help = ' To Send Msg via SMS, Type the Message and Press <ENTER> ' 
+    to_add_help = ' To Add contacts to send sms to, Type "a" and Press <ENTER> '
+    to_del_help = ' To Remove contacts to send sms to, Type "d" and Press <ENTER> '
     print '\to' + to_send_help
+    print '\to' + to_add_help
+    print '\to' + to_del_help
     print '\to' + to_quit_help + '\n'
 
 def get_message_from_user(to_send_contacts):
@@ -379,34 +383,80 @@ def is_ten_digit_number(str = None):
     else:
         return False
 
+def ask_contact_has_to_be_removed(contact):
+    contact.print_to_std_out()
+    user_choice=raw_input('Do you want to remove the above contact for next sms chats ([y|Y|yes|yEs]/[n|N|nO|NO|No|no]):')
+    user_choice=user_choice.strip()
+    if user_choice.lower() == 'y' or user_choice.lower() == 'yes': return True
+    elif user_choice.lower() == 'n' or user_choice.lower() == 'no': return False
+    else:
+        print 'Invalid option specified! Re-enter choice!!'
+        return ask_contact_has_to_be_removed(contact)
+
+def remove_some_from_to_send(to_send_contacts):
+    new_to_send = []
+    for contact in to_send_contacts:
+	is_contact_to_be_removed = ask_contact_has_to_be_removed(contact)
+	if is_contact_to_be_removed == True: continue
+	else: new_to_send.append(contact)
+    return new_to_send
+
+def get_matched_contacts_from_user(to_match_name_or_no):
+    props = ConfigProps(PROPERTIES_FILE_NAME)
+    matched_contacts = []
+    if is_ten_digit_number(to_match_name_or_no):
+	cell_no = to_match_name_or_no
+	print 'Number detected!'
+	(first_name, last_name) = ask_and_add_to_contacts(cell_no, props.get_contacts_csv_file_path())
+	matched_contacts.append(PhoneContact(first_name, last_name, cell_no))
+    else:
+	name_to_be_matched = to_match_name_or_no
+	contacts = get_contacts_list_from_csv(props.get_contacts_csv_file_path())
+	matched_contacts = get_contacts_which_match(contacts, name_to_be_matched)
+	if len(matched_contacts) == 0:
+	    print 'No matches of ' + name_to_be_matched + ' found in ' + props.get_contacts_csv_file_path()
+
+    to_send_contacts = get_user_confirmed_contacts(matched_contacts)
+
+    return to_send_contacts
+
+
+def add_some_more_to_send(to_send_contacts):
+    new_to_send = []
+    for contact in to_send_contacts:
+	new_to_send.append(contact)
+    to_add_contact_name = raw_input('Enter the name of the contact you want to add:')
+    if len(to_add_contact_name) != 0:
+	to_send_matched_contacts = get_matched_contacts_from_user(to_add_contact_name)
+	for matched_contact in to_send_matched_contacts:
+	    new_to_send.append(matched_contact)
+    else:
+	print 'Empty string contact name search not allowed!!'
+    return new_to_send
+
 if __name__ == '__main__':
     if len(sys.argv) == 2:
-        props = ConfigProps(PROPERTIES_FILE_NAME)
+	props = ConfigProps(PROPERTIES_FILE_NAME)
         argv1 = sys.argv[1]
-        matched_contacts = []
-        if is_ten_digit_number(argv1):
-            cell_no = argv1
-            print 'Number detected!'
-            (first_name, last_name) = ask_and_add_to_contacts(cell_no, props.get_contacts_csv_file_path())
-            matched_contacts.append(PhoneContact(first_name, last_name, cell_no))
-        else:
-            name_to_be_matched = sys.argv[1]
-            contacts = get_contacts_list_from_csv(props.get_contacts_csv_file_path())
-            matched_contacts = get_contacts_which_match(contacts, name_to_be_matched)
-        if len(matched_contacts) == 0:
-            print 'No Matches found!!'
-            print_command_line_args()
-        else:
-            to_send_contacts = get_user_confirmed_contacts(matched_contacts)
-            if len(to_send_contacts) == 0:
-                print 'No Contacts to send, Exiting.. '
-                sys.exit()
-            open_entry_url()
-            login_to_way2sms(props.get_way2sms_username(),
-                             props.get_way2sms_password())
-            message = get_message_from_user(to_send_contacts)
-            while message != None:
-                send_sms_to_contacts(to_send_contacts, message)
-                message = get_message_from_user(to_send_contacts)
+	to_send_contacts = get_matched_contacts_from_user(argv1)
+	if len(to_send_contacts) == 0:
+	    print 'No Contacts to send, Exiting.. '
+	    sys.exit()
+	open_entry_url()
+	login_to_way2sms(props.get_way2sms_username(), props.get_way2sms_password())
+	while 1:
+	    if len(to_send_contacts) == 0:
+		print 'No Contacts to send, Exiting.. '
+		sys.exit()
+	    message = get_message_from_user(to_send_contacts)
+	    if message == None:
+		break;
+	    elif message == 'd':
+		to_send_contacts = remove_some_from_to_send(to_send_contacts)
+	    elif message == 'a':
+		to_send_contacts = add_some_more_to_send(to_send_contacts)
+	    else:
+		print 'send_sms_to_contacts(to_send_contacts, message)'
+		send_sms_to_contacts(to_send_contacts, message)
     else:
         print_usage()
