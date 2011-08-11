@@ -356,8 +356,8 @@ def print_messaging_options():
     print starrify_print(menu_title)
     to_quit_help = ' To Quit Chat press only <ENTER> without any text after > '
     to_send_help = ' To Send Msg via SMS, Type the Message and Press <ENTER> ' 
-    to_add_help = ' To Add contacts to send sms to, Type "a" and Press <ENTER> '
-    to_del_help = ' To Remove contacts to send sms to, Type "d" and Press <ENTER> '
+    to_add_help = ' To Add contacts to send sms to, Type "a|A" and Press <ENTER> '
+    to_del_help = ' To Remove contacts to send sms to, Type "d|D" and Press <ENTER> '
     print '\to' + to_send_help
     print '\to' + to_add_help
     print '\to' + to_del_help
@@ -451,12 +451,11 @@ if __name__ == '__main__':
 	    message = get_message_from_user(to_send_contacts)
 	    if message == None:
 		break;
-	    elif message == 'd':
+	    elif message.lower() == 'd':
 		to_send_contacts = remove_some_from_to_send(to_send_contacts)
-	    elif message == 'a':
+	    elif message.lower() == 'a':
 		to_send_contacts = add_some_more_to_send(to_send_contacts)
 	    else:
-		print 'send_sms_to_contacts(to_send_contacts, message)'
 		send_sms_to_contacts(to_send_contacts, message)
     else:
         print_usage()
