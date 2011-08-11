@@ -265,7 +265,7 @@ def send_sms_to_contact_no(contact_no, full_msg):
         while is_sent_flag == False:
             try:
                 if len(msg_chunks) == 1:
-                    send_sms(contact_no, msg_chunks)
+                    send_sms(contact_no, chunk)
                 else:
                     send_sms(contact_no, append_footer_to_msg(chunk, chunk_no, len(msg_chunks)))
                 is_sent_flag = True
