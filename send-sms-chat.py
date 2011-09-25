@@ -394,6 +394,15 @@ def is_ten_digit_number(str = None):
     else:
         return False
 
+def ask_if_confirm_exit():
+    user_choice=raw_input('Really exit sms chat program ([y|Y|yes|yEs]/[n|N|nO|NO|No|no]):')
+    user_choice=user_choice.strip()
+    if user_choice.lower() == 'y' or user_choice.lower() == 'yes': return True
+    elif user_choice.lower() == 'n' or user_choice.lower() == 'no': return False
+    else:
+        print 'Invalid option specified! Re-enter choice!!'
+        return ask_if_confirm_exit(contact)
+
 def ask_contact_has_to_be_removed(contact):
     contact.print_to_std_out()
     user_choice=raw_input('Do you want to remove the above contact for next sms chats ([y|Y|yes|yEs]/[n|N|nO|NO|No|no]):')
@@ -436,7 +445,7 @@ def add_some_more_to_send(to_send_contacts):
     new_to_send = []
     for contact in to_send_contacts:
 	new_to_send.append(contact)
-    to_add_contact_name = raw_input('Enter the name of the contact you want to add:')
+    to_add_contact_name = raw_input('Enter the name of the contact or the cell no you want to add to the sender\'s list:')
     if len(to_add_contact_name) != 0:
 	to_send_matched_contacts = get_matched_contacts_from_user(to_add_contact_name)
 	for matched_contact in to_send_matched_contacts:
@@ -461,9 +470,16 @@ if __name__ == '__main__':
 		sys.exit()
 	    message = get_message_from_user(to_send_contacts)
 	    if message == None:
-		break;
+		if (ask_if_confirm_exit() == True):
+		    break
+		else:
+		    continue
 	    elif message.lower() == 'd':
 		to_send_contacts = remove_some_from_to_send(to_send_contacts)
+		if (len(to_send_contacts) == 0):
+		    if (ask_if_confirm_exit() == False):
+			to_send_contacts = add_some_more_to_send(to_send_contacts)
+
 	    elif message.lower() == 'a':
 		to_send_contacts = add_some_more_to_send(to_send_contacts)
 	    else:
