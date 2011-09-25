@@ -330,8 +330,15 @@ def ask_and_add_to_contacts(cell_no, csv_file_path):
     else:
         return ('','')
 
+def create_empty_file(csv_file_name):
+    fp = open(csv_file_name, 'wb')
+
 def get_all_rows_from_csv(csv_file_name):
-    fp = open(csv_file_name, 'rb')
+    try:
+	fp = open(csv_file_name, 'rb')
+    except IOError:
+	create_empty_file(csv_file_name)
+	fp = open(csv_file_name, 'rb')
     csvR = csv.reader(fp)
     rows = []
     for row in csvR:
@@ -339,7 +346,11 @@ def get_all_rows_from_csv(csv_file_name):
     return rows
 
 def get_contacts_list_from_csv(csv_file_name):
-    fp = open(csv_file_name, 'rb')
+    try:
+	fp = open(csv_file_name, 'rb')
+    except IOError:
+	create_empty_file(csv_file_name)
+	fp = open(csv_file_name, 'rb')
     csvR = csv.reader(fp)
     contacts = []
     for row in csvR:
