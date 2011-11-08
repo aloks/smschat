@@ -12,6 +12,8 @@ from BeautifulSoup import BeautifulSoup
 
 PROPERTIES_FILE_NAME='send_sms.properties'
 
+_DEBUG = False
+
 class PhoneContact():
     def __init__(self, first_name = None, last_name = None, phone_no = None):
         if (first_name == None):
@@ -93,24 +95,40 @@ class ConfigProps():
 
 COOKIE_JAR = cookielib.CookieJar()
 URL_OPENER = urllib2.build_opener(urllib2.HTTPCookieProcessor(COOKIE_JAR))
-WAY_TO_SMS_ENTRY_URL='http://site3.way2sms.com/entry.jsp'
-WAY_TO_SMS_AUTH_URL='http://site3.way2sms.com/auth.cl'
-WAY_TO_SMS_SEND_SMS_ENTRY_URL='http://site3.way2sms.com/jsp/InstantSMS.jsp'
-WAY_TO_SMS_MAIN_URL='http://site3.way2sms.com/jsp/Main.jsp'
-WAY_TO_SMS_SEND_SMS_POST_URL='http://site3.way2sms.com/FirstServletsms'
+WAY_TO_SMS_BASE_URL=''
+#WAY_TO_SMS_ENTRY_URL=WAY_TO_SMS_BASE_URL+'/content/index.html'
+WAY_TO_SMS_ENTRY_URL='http://way2sms.com'
+WAY_TO_SMS_AUTH_URL='Login1.action'
+WAY_TO_SMS_SEND_SMS_ENTRY_URL='jsp/InstantSMS.jsp'
+WAY_TO_SMS_MAIN_URL='Main.action'
+WAY_TO_SMS_SEND_SMS_POST_URL='quicksms.action'
 MAX_CHUNK_SIZE = 135
 
 def open_entry_url():
+    global WAY_TO_SMS_AUTH_URL
+    global WAY_TO_SMS_SEND_SMS_ENTRY_URL
+    global WAY_TO_SMS_MAIN_URL
+    global WAY_TO_SMS_SEND_SMS_POST_URL
+    global WAY_TO_SMS_BASE_URL
     fp = URL_OPENER.open(WAY_TO_SMS_ENTRY_URL)
+    WAY_TO_SMS_BASE_URL=fp.geturl()
+    WAY_TO_SMS_AUTH_URL=WAY_TO_SMS_BASE_URL+'Login1.action'
+    WAY_TO_SMS_SEND_SMS_ENTRY_URL=WAY_TO_SMS_BASE_URL+'jsp/InstantSMS.jsp'
+    WAY_TO_SMS_MAIN_URL=WAY_TO_SMS_BASE_URL+'Main.action'
+    WAY_TO_SMS_SEND_SMS_POST_URL=WAY_TO_SMS_BASE_URL+'quicksms.action'
 #    print 'Some html obtained from: ' + WAY_TO_SMS_ENTRY_URL
 
 def login_to_way2sms(username, password):
     post_props = {'username':username,
                   'password':password,
-                  'Submit':'Sign+in'}
+                  'button':'Login'}
     post_data = urllib.urlencode(post_props)
     fp = URL_OPENER.open(WAY_TO_SMS_AUTH_URL, post_data)
-    resp = fp.read()
+    #Debug stuff
+    if (_DEBUG == True):
+        resp = fp.read()
+        soup = BeautifulSoup(resp)
+        print soup.prettify()
     print 'Session with Way2SMS Created!\n'
 
 class SessionExpired(Exception):
@@ -120,6 +138,8 @@ def open_send_sms_url():
     fp = URL_OPENER.open(WAY_TO_SMS_SEND_SMS_ENTRY_URL)
     resp = fp.read()
     soup = BeautifulSoup(resp)
+    if (_DEBUG == True):
+        print soup.prettify()
 #    forms = soup.findAll('form')
 # For now this itself must work.. THere's only one form in istantSms.jsp's response
     form = soup.find('form')
@@ -129,13 +149,20 @@ def open_send_sms_url():
     inputTags = form.findAll('input', attrs={'type':'hidden'})
     post_props = {}
     for inputTag in inputTags:
-#        print 'Name:' + inputTag['name']
-#        print 'value:' + inputTag['value']
+        if (_DEBUG == True):
+            print 'Name:' + inputTag['name']
+            print 'value:' + inputTag['value']
         post_props[inputTag['name']]=inputTag['value']
     return post_props
     
+
+
+
 def send_sms(toMobileNo, textMsg):
-    URL_OPENER.open(WAY_TO_SMS_MAIN_URL)
+    fp = URL_OPENER.open(WAY_TO_SMS_MAIN_URL)
+    if (_DEBUG == True):
+        soup=BeautifulSoup(fp.read())
+        print soup.prettify()
     post_props = open_send_sms_url()
     post_props['chkall'] = 'on'
     post_props['MobNo'] = toMobileNo
@@ -145,7 +172,10 @@ def send_sms(toMobileNo, textMsg):
     post_props['yuid'] = 'username'
     post_props['ypwd'] =  '*******'
     post_data = urllib.urlencode(post_props)
-    URL_OPENER.open(WAY_TO_SMS_SEND_SMS_POST_URL,post_data)
+    fp = URL_OPENER.open(WAY_TO_SMS_SEND_SMS_POST_URL,post_data)
+    if (_DEBUG == True):
+        soup=BeautifulSoup(fp.read())
+        print soup.prettify()
     print '\tSMS chunk sent!'
 
 def print_usage():
@@ -213,9 +243,6 @@ import codecs
 def get_contacts_list_from_file(file_path):
     fp = codecs.open(file_path, 'r', 'utf-16')
     contacts = []
-    first_name = ''
-    last_name = ''
-    phone_no = ''
     contact = PhoneContact()
     for line in fp:
         splits = line.split(u':')
@@ -278,7 +305,7 @@ class NotATenDigitNo(Exception):
     def __init__(self, digit_str):
         self.digit_str = digit_str
     def __str__(self):
-        return repr(digit_str)
+        return repr(self.digit_str)
 
 def send_sms_to_contacts(to_send_contacts, message):
     for contact in to_send_contacts:
@@ -307,8 +334,8 @@ def add_contact_to_file(first_name, last_name, cell_no, contact_file_path):
     print "TODO: add_contact_to_file introduces the UTF-16 BOM?? at the end of the file where appending starts which is why things aren't clean in this approact"
     return
     fp = codecs.open(contact_file_path, 'a+', 'utf-16')
-    fp.write('\nFirst name:	' + first_name + '\nLast name:	'+ \
-             last_name + '\nGeneral phone:	'+ cell_no+ '\n') 
+    fp.write('\nFirst name:    ' + first_name + '\nLast name:    '+ \
+             last_name + '\nGeneral phone:    '+ cell_no+ '\n') 
 
 def add_contact_to_csv(first_name, last_name, cell_no, csv_file_path):
     rows = get_all_rows_from_csv(csv_file_path)
@@ -335,10 +362,10 @@ def create_empty_file(csv_file_name):
 
 def get_all_rows_from_csv(csv_file_name):
     try:
-	fp = open(csv_file_name, 'rb')
+        fp = open(csv_file_name, 'rb')
     except IOError:
-	create_empty_file(csv_file_name)
-	fp = open(csv_file_name, 'rb')
+        create_empty_file(csv_file_name)
+        fp = open(csv_file_name, 'rb')
     csvR = csv.reader(fp)
     rows = []
     for row in csvR:
@@ -347,16 +374,15 @@ def get_all_rows_from_csv(csv_file_name):
 
 def get_contacts_list_from_csv(csv_file_name):
     try:
-	fp = open(csv_file_name, 'rb')
+        fp = open(csv_file_name, 'rb')
     except IOError:
-	create_empty_file(csv_file_name)
-	fp = open(csv_file_name, 'rb')
+        create_empty_file(csv_file_name)
+        fp = open(csv_file_name, 'rb')
     csvR = csv.reader(fp)
     contacts = []
     for row in csvR:
         contact = PhoneContact(row[0], row[1], row[2])
         contacts.append(contact)
-
     return contacts
 
 def starrify_print(str):
@@ -401,7 +427,7 @@ def ask_if_confirm_exit():
     elif user_choice.lower() == 'n' or user_choice.lower() == 'no': return False
     else:
         print 'Invalid option specified! Re-enter choice!!'
-        return ask_if_confirm_exit(contact)
+        return ask_if_confirm_exit()
 
 def ask_contact_has_to_be_removed(contact):
     contact.print_to_std_out()
@@ -416,25 +442,25 @@ def ask_contact_has_to_be_removed(contact):
 def remove_some_from_to_send(to_send_contacts):
     new_to_send = []
     for contact in to_send_contacts:
-	is_contact_to_be_removed = ask_contact_has_to_be_removed(contact)
-	if is_contact_to_be_removed == True: continue
-	else: new_to_send.append(contact)
+        is_contact_to_be_removed = ask_contact_has_to_be_removed(contact)
+        if is_contact_to_be_removed == True: continue
+        else: new_to_send.append(contact)
     return new_to_send
 
 def get_matched_contacts_from_user(to_match_name_or_no):
     props = ConfigProps(PROPERTIES_FILE_NAME)
     matched_contacts = []
     if is_ten_digit_number(to_match_name_or_no):
-	cell_no = to_match_name_or_no
-	print 'Number detected!'
-	(first_name, last_name) = ask_and_add_to_contacts(cell_no, props.get_contacts_csv_file_path())
-	matched_contacts.append(PhoneContact(first_name, last_name, cell_no))
+        cell_no = to_match_name_or_no
+        print 'Number detected!'
+        (first_name, last_name) = ask_and_add_to_contacts(cell_no, props.get_contacts_csv_file_path())
+        matched_contacts.append(PhoneContact(first_name, last_name, cell_no))
     else:
-	name_to_be_matched = to_match_name_or_no
-	contacts = get_contacts_list_from_csv(props.get_contacts_csv_file_path())
-	matched_contacts = get_contacts_which_match(contacts, name_to_be_matched)
-	if len(matched_contacts) == 0:
-	    print 'No matches of ' + name_to_be_matched + ' found in ' + props.get_contacts_csv_file_path()
+        name_to_be_matched = to_match_name_or_no
+        contacts = get_contacts_list_from_csv(props.get_contacts_csv_file_path())
+        matched_contacts = get_contacts_which_match(contacts, name_to_be_matched)
+        if len(matched_contacts) == 0:
+            print 'No matches of ' + name_to_be_matched + ' found in ' + props.get_contacts_csv_file_path()
 
     to_send_contacts = get_user_confirmed_contacts(matched_contacts)
 
@@ -444,45 +470,46 @@ def get_matched_contacts_from_user(to_match_name_or_no):
 def add_some_more_to_send(to_send_contacts):
     new_to_send = []
     for contact in to_send_contacts:
-	new_to_send.append(contact)
+        new_to_send.append(contact)
     to_add_contact_name = raw_input('Enter the name of the contact or the cell no you want to add to the sender\'s list:')
     if len(to_add_contact_name) != 0:
-	to_send_matched_contacts = get_matched_contacts_from_user(to_add_contact_name)
-	for matched_contact in to_send_matched_contacts:
-	    new_to_send.append(matched_contact)
+        to_send_matched_contacts = get_matched_contacts_from_user(to_add_contact_name)
+        for matched_contact in to_send_matched_contacts:
+            new_to_send.append(matched_contact)
     else:
-	print 'Empty string contact name search not allowed!!'
+        print 'Empty string contact name search not allowed!!'
     return new_to_send
 
 if __name__ == '__main__':
     if len(sys.argv) == 2:
-	props = ConfigProps(PROPERTIES_FILE_NAME)
+        props = ConfigProps(PROPERTIES_FILE_NAME)
         argv1 = sys.argv[1]
-	to_send_contacts = get_matched_contacts_from_user(argv1)
-	if len(to_send_contacts) == 0:
-	    print 'No Contacts to send, Exiting.. '
-	    sys.exit()
-	open_entry_url()
-	login_to_way2sms(props.get_way2sms_username(), props.get_way2sms_password())
-	while 1:
-	    if len(to_send_contacts) == 0:
-		print 'No Contacts to send, Exiting.. '
-		sys.exit()
-	    message = get_message_from_user(to_send_contacts)
-	    if message == None:
-		if (ask_if_confirm_exit() == True):
-		    break
-		else:
-		    continue
-	    elif message.lower() == 'd':
-		to_send_contacts = remove_some_from_to_send(to_send_contacts)
-		if (len(to_send_contacts) == 0):
-		    if (ask_if_confirm_exit() == False):
-			to_send_contacts = add_some_more_to_send(to_send_contacts)
+    to_send_contacts = get_matched_contacts_from_user(argv1)
+    if len(to_send_contacts) == 0:
+        print 'No Contacts to send, Exiting.. '
+        sys.exit()
+    open_entry_url()
+    login_to_way2sms(props.get_way2sms_username(), props.get_way2sms_password())
+    while 1:
+        if len(to_send_contacts) == 0:
+            print 'No Contacts to send, Exiting.. '
+            sys.exit()
+        message = get_message_from_user(to_send_contacts)
+        if message == None:
+            if (ask_if_confirm_exit() == True):
+                break
+            else:
+                continue
+        elif message.lower() == 'd':
+            to_send_contacts = remove_some_from_to_send(to_send_contacts)
+            if (len(to_send_contacts) == 0):
+                if (ask_if_confirm_exit() == False):
+                    to_send_contacts = add_some_more_to_send(to_send_contacts)
 
-	    elif message.lower() == 'a':
-		to_send_contacts = add_some_more_to_send(to_send_contacts)
-	    else:
-		send_sms_to_contacts(to_send_contacts, message)
+        elif message.lower() == 'a':
+            to_send_contacts = add_some_more_to_send(to_send_contacts)
+        else:
+            send_sms_to_contacts(to_send_contacts, message)
     else:
         print_usage()
+
