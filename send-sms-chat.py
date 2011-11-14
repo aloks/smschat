@@ -484,32 +484,33 @@ if __name__ == '__main__':
     if len(sys.argv) == 2:
         props = ConfigProps(PROPERTIES_FILE_NAME)
         argv1 = sys.argv[1]
-    to_send_contacts = get_matched_contacts_from_user(argv1)
-    if len(to_send_contacts) == 0:
-        print 'No Contacts to send, Exiting.. '
-        sys.exit()
-    open_entry_url()
-    login_to_way2sms(props.get_way2sms_username(), props.get_way2sms_password())
-    while 1:
+        to_send_contacts = get_matched_contacts_from_user(argv1)
         if len(to_send_contacts) == 0:
             print 'No Contacts to send, Exiting.. '
             sys.exit()
-        message = get_message_from_user(to_send_contacts)
-        if message == None:
-            if (ask_if_confirm_exit() == True):
-                break
+        open_entry_url()
+        login_to_way2sms(props.get_way2sms_username(), props.get_way2sms_password())
+        while 1:
+            if len(to_send_contacts) == 0:
+                print 'No Contacts to send, Exiting.. '
+                sys.exit()
+            message = get_message_from_user(to_send_contacts)
+            if message == None:
+                if (ask_if_confirm_exit() == True):
+                    break
+                else:
+                    continue
+            elif message.lower() == 'd':
+                to_send_contacts = remove_some_from_to_send(to_send_contacts)
+                if (len(to_send_contacts) == 0):
+                    if (ask_if_confirm_exit() == False):
+                        to_send_contacts = add_some_more_to_send(to_send_contacts)
+    
+            elif message.lower() == 'a':
+                to_send_contacts = add_some_more_to_send(to_send_contacts)
             else:
-                continue
-        elif message.lower() == 'd':
-            to_send_contacts = remove_some_from_to_send(to_send_contacts)
-            if (len(to_send_contacts) == 0):
-                if (ask_if_confirm_exit() == False):
-                    to_send_contacts = add_some_more_to_send(to_send_contacts)
-
-        elif message.lower() == 'a':
-            to_send_contacts = add_some_more_to_send(to_send_contacts)
-        else:
-            send_sms_to_contacts(to_send_contacts, message)
+                send_sms_to_contacts(to_send_contacts, message)
     else:
         print_usage()
+
 
