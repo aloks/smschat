@@ -119,6 +119,7 @@ def open_entry_url():
 #    print 'Some html obtained from: ' + WAY_TO_SMS_ENTRY_URL
 
 def login_to_way2sms(username, password):
+    open_entry_url()
     post_props = {'username':username,
                   'password':password,
                   'button':'Login'}
@@ -298,7 +299,6 @@ def send_sms_to_contact_no(contact_no, full_msg):
                 is_sent_flag = True
             except SessionExpired:
                 props = ConfigProps(PROPERTIES_FILE_NAME)
-                open_entry_url()
                 login_to_way2sms(props.get_way2sms_username(), props.get_way2sms_password())
 
 class NotATenDigitNo(Exception):
@@ -488,7 +488,6 @@ if __name__ == '__main__':
         if len(to_send_contacts) == 0:
             print 'No Contacts to send, Exiting.. '
             sys.exit()
-        open_entry_url()
         login_to_way2sms(props.get_way2sms_username(), props.get_way2sms_password())
         while 1:
             if len(to_send_contacts) == 0:
