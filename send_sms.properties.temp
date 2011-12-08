@@ -1,0 +1,4 @@
+way2sms.username=<way2sms username usually your 10 digit number>
+way2sms.password=<way2sms password>
+contacts.file=contactsGood.csv
+contacts.format=csv
