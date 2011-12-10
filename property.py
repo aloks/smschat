@@ -66,14 +66,16 @@ class ConfigProps():
             
         is_exit_reqd = False
         if expectedPropList != None:
+            not_found_props = []
             for prop in expectedPropList:
                 if prop not in propnamesToIsInitedMap:
                     is_exit_reqd = True
-                    print 'Enter property '+ prop + ' in: ' + config_file_path
+                    not_found_props.append(prop)
+            
+            not_found_str = ','.join(not_found_props)
             
             if is_exit_reqd == True:
-                raise ExpectedPropertyNotFoundError
-        
+                raise ExpectedPropertyNotFoundError('Properties: ' + not_found_str + ' not found in ' + config_file_path)
 
 PROPERTIES_FILE='send_sms.properties.temp'
 

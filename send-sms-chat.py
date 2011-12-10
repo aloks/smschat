@@ -121,9 +121,6 @@ def open_send_sms_url():
         post_props[inputTag['name']]=inputTag['value']
     return post_props
     
-
-
-
 def send_sms(toMobileNo, textMsg):
     fp = URL_OPENER.open(WAY_TO_SMS_MAIN_URL)
     if (_DEBUG == True):
