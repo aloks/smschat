@@ -9,9 +9,14 @@ import csv
 import re
 import urllib2, cookielib, urllib, os
 from BeautifulSoup import BeautifulSoup
+from property import ConfigProps
 
 PROPERTIES_FILE_NAME='send_sms.properties'
-
+expectedPropList = [
+                    'way2sms.username',
+                    'way2sms.password',
+                    'contacts.file'
+                    ]
 _DEBUG = False
 
 class PhoneContact():
@@ -52,46 +57,6 @@ class PhoneContact():
         print '\t\tFirst Name: '+ self.get_first_name()
         print '\t\tLast Name: '+ self.get_last_name()
         print '\t\tPhone Number: ' + self.get_phone_no()
-
-
-class NoPropertyFileError(Exception):
-    def __init__(self, value=None):
-        self.value = value
-    def __str__(self):
-        return repr(self.value)
-
-class ConfigProps():
-    def __init__(self, config_file_path = None):
-        if (config_file_path == None):
-            raise NoPropertyFileError
-        else:
-            self._config_file_path = config_file_path
-
-        if not os.path.exists(config_file_path):
-            print 'Enter way2sms creds way2sms.username and way2sms.password and contacts.file name in '+ PROPERTIES_FILE_NAME + ' file in same directory'
-            raise NoPropertyFileError(config_file_path)
-        else:
-            fp = open(config_file_path)
-            props = {}
-            for line in fp:
-                if line.strip().startswith('#'): continue
-                nameVal = line.strip().split('=')
-                props[nameVal[0]]=nameVal[1]
-        
-        for key in props:
-            if (key == 'way2sms.username'): self._username = props[key]
-            elif (key == 'way2sms.password'): self._password = props[key]
-            elif (key == 'contacts.file'): self._contacts_csv = props[key]
-
-    def get_way2sms_username(self):
-        return self._username
-
-    def get_way2sms_password(self):
-        return self._password
-
-    def get_contacts_csv_file_path(self):
-        return self._contacts_csv
-
 
 COOKIE_JAR = cookielib.CookieJar()
 URL_OPENER = urllib2.build_opener(urllib2.HTTPCookieProcessor(COOKIE_JAR))
@@ -189,25 +154,6 @@ def print_command_line_args():
     print '\tIf the Cell No is specified it must be 10 digits'
     print '\tElse the string is matched for first name and last name in the contacts csv file mentioned in '+ PROPERTIES_FILE_NAME 
 
-def get_way2sms_creds_from_properties_file():
-    if not os.path.exists(PROPERTIES_FILE_NAME):
-        print 'Enter way2sms creds way2sms.username and way2sms.password in '+ PROPERTIES_FILE_NAME 
-        sys.exit()
-    else:
-        fp = open(PROPERTIES_FILE_NAME)
-        props = {}
-        for line in fp:
-            if line.strip().startswith('#'): continue
-            nameVal = line.strip().split('=')
-            props[nameVal[0]]=nameVal[1]
-        
-        for key in props:
-            if (key == 'way2sms.username'): username = props[key]
-            elif (key == 'way2sms.password'): password = props[key]
-            elif (key == 'contacts.file'): contacts_csv = props[key]
-        
-        return (username, password, contacts_csv)
-
 def break_msg_into_chunks(message):
     msg_chunks = []
     msg_len = len(message)
@@ -298,7 +244,7 @@ def send_sms_to_contact_no(contact_no, full_msg):
                     send_sms(contact_no, append_footer_to_msg(chunk, chunk_no, len(msg_chunks)))
                 is_sent_flag = True
             except SessionExpired:
-                props = ConfigProps(PROPERTIES_FILE_NAME)
+                props = ConfigProps(PROPERTIES_FILE_NAME, expectedPropList)
                 login_to_way2sms(props.get_way2sms_username(), props.get_way2sms_password())
 
 class NotATenDigitNo(Exception):
@@ -448,7 +394,7 @@ def remove_some_from_to_send(to_send_contacts):
     return new_to_send
 
 def get_matched_contacts_from_user(to_match_name_or_no):
-    props = ConfigProps(PROPERTIES_FILE_NAME)
+    props = ConfigProps(PROPERTIES_FILE_NAME, expectedPropList)
     matched_contacts = []
     if is_ten_digit_number(to_match_name_or_no):
         cell_no = to_match_name_or_no
@@ -482,7 +428,7 @@ def add_some_more_to_send(to_send_contacts):
 
 if __name__ == '__main__':
     if len(sys.argv) == 2:
-        props = ConfigProps(PROPERTIES_FILE_NAME)
+        props = ConfigProps(PROPERTIES_FILE_NAME, expectedPropList)
         argv1 = sys.argv[1]
         to_send_contacts = get_matched_contacts_from_user(argv1)
         if len(to_send_contacts) == 0:
