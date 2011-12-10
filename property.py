@@ -55,14 +55,15 @@ class ConfigProps():
         expectedPropList = expected_prop_list
         
         for key in props:
-            for propName in expectedPropList:
-                if (key == propName):
-                    attrName = '_' + propName.replace('.','')
-                    setattr(self, attrName, props[key])
-                    propnamesToIsInitedMap[propName] = True
-                    #Reflectively set the get_methods names too
-                    methodName = 'get_' + propName.replace('.', '_')
-                    setattr(self, methodName, get_get_method_for_attr(self, attrName))
+            attrName = '_' + key.replace('.','')
+            setattr(self, attrName, props[key])
+            #Reflectively set the get_methods names too
+            methodName = 'get_' + key.replace('.', '_')
+            setattr(self, methodName, get_get_method_for_attr(self, attrName))
+            if expectedPropList !=None:
+                for propName in expectedPropList:
+                    if (key == propName):
+                        propnamesToIsInitedMap[propName] = True
             
         is_exit_reqd = False
         if expectedPropList != None:
@@ -92,4 +93,7 @@ if __name__ == '__main__':
     print configs.get_way2sms_username()
     print configs.get_way2sms_password()
     print configs.get_contacts_file()
+    configs_without_expected_list = ConfigProps(PROPERTIES_FILE)
+    print configs.get_way2sms_username()
+    print configs.get_way2sms_password()
 #    print configs.get_email_to()
