@@ -396,14 +396,14 @@ def get_matched_contacts_from_user(to_match_name_or_no):
     if is_ten_digit_number(to_match_name_or_no):
         cell_no = to_match_name_or_no
         print 'Number detected!'
-        (first_name, last_name) = ask_and_add_to_contacts(cell_no, props.get_contacts_csv_file_path())
+        (first_name, last_name) = ask_and_add_to_contacts(cell_no, props.get_contacts_file())
         matched_contacts.append(PhoneContact(first_name, last_name, cell_no))
     else:
         name_to_be_matched = to_match_name_or_no
-        contacts = get_contacts_list_from_csv(props.get_contacts_csv_file_path())
+        contacts = get_contacts_list_from_csv(props.get_contacts_file())
         matched_contacts = get_contacts_which_match(contacts, name_to_be_matched)
         if len(matched_contacts) == 0:
-            print 'No matches of ' + name_to_be_matched + ' found in ' + props.get_contacts_csv_file_path()
+            print 'No matches of ' + name_to_be_matched + ' found in ' + props.get_contacts_file()
 
     to_send_contacts = get_user_confirmed_contacts(matched_contacts)
 
