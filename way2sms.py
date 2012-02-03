@@ -12,6 +12,8 @@ _DEBUG = False
 
 COOKIE_JAR = cookielib.CookieJar()
 URL_OPENER = urllib2.build_opener(urllib2.HTTPCookieProcessor(COOKIE_JAR))
+USER_AGENT = 'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.2.22) Gecko/20110902 Firefox/3.6.22'
+URL_OPENER.addheaders = [('User-agent',USER_AGENT)]
 WAY_TO_SMS_BASE_URL=''
 #WAY_TO_SMS_ENTRY_URL=WAY_TO_SMS_BASE_URL+'/content/index.html'
 WAY_TO_SMS_ENTRY_URL='http://way2sms.com'
