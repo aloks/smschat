@@ -67,7 +67,7 @@ def open_send_sms_url(token):
 # For now this itself must work.. THere's only one form in istantSms.jsp's response
     form = soup.find('form')
     if form is None:
-        print 'Session Expired?, Relogging..'
+        print 'Session Expired?, Relogging..?'
         raise SessionExpired
     inputTags = form.findAll('input', attrs={'type':'hidden'})
     post_props = {}
@@ -87,6 +87,11 @@ def open_main_and_get_token():
         print tokenElem['value']
         print 'Opened: ' + WAY_TO_SMS_MAIN_URL
         print soup.prettify()
+
+    if (tokenElem == None):
+        print 'Session Expired?, Relogging..?'
+        raise SessionExpired
+
     return tokenElem['value']
     
 def get_mob_no_param(form):
@@ -101,7 +106,7 @@ def get_token_param(form):
     for scriptTag in scriptTags:
         tokenScriptTag = scriptTag.find(text=re.compile('.*rqTok=.*'))
         if (tokenScriptTag!=None):
-            for tokenScriptTagLine in tokenScriptTag.split('\n'):
+            for tokenScriptTagLine in tokenScriptTag.splitlines():
                 r = re.search('.*rqTok="(.*)".*;.*', tokenScriptTagLine)
                 if (r != None):
                     token_param = r.group(1)
